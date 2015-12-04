@@ -6,6 +6,7 @@
 #include "highgui.h"
 #include "cxcore.h"
 #include "kinect-motors.h"
+#include "depthfilterMeta.h"
 using namespace cv;
 using namespace std;
 using namespace xn;
@@ -15,26 +16,20 @@ void transformDepthMD(DepthMetaData& depthMD)
 	DepthMap& depthMap = depthMD.WritableDepthMap();
 
 	Mat depthMat(depthMD.FullYRes(), depthMD.FullXRes(), CV_16UC1, depthMD.WritableData());
-	//for (XnUInt32 y = 0; y < depthMap.YRes(); y++)
-	//{
-	//	for (XnUInt32 x = 0; x < depthMap.XRes(); x++)
-	//	{
-	//		//Punch vertical cut lines in the depth image
-	//		
-	//			depthMap(x, y) = 0;
-	//		
-	//	}
-	//}
-	Mat depthshow;
+
+	Mat filterdMat;
+	filterDepthMeta(depthMat, filterdMat);
+	fiterDepthAverageMeta(filterdMat, filterdMat);
+	/*Mat depthshow;
 	depthMat.convertTo(depthshow, CV_8U, 255 / 4096.0, 0);
 	Mat depthfilterd(depthMat.size(),CV_8U);
-	cv::bilateralFilter(depthshow, depthfilterd, 5, 1, 1);
+	cv::bilateralFilter(depthshow, depthfilterd, 5, 1, 1);*/
 	for (int j = 0; j < depthMat.rows; ++j)
 	{
-		uchar* data = depthfilterd.ptr<unsigned char>(j);
+		ushort* data = filterdMat.ptr<ushort>(j);
 		for (int i = 0; i < depthMat.cols;++i)
 		{
-			depthMap(i, j) = data[i]*4096.0/255;
+			depthMap(i, j) = data[i];
 		}
 	}
 }
@@ -186,6 +181,57 @@ void playBack(const string& filename)
 	
 }
 
+void mockrealtime()
+{
+	XnStatus eResult = XN_STATUS_OK;
+	xn::Context m_Context;
+	m_Context.Init();
+	//set map mode
+	XnMapOutputMode mapMode;
+	mapMode.nFPS = 30;
+	mapMode.nXRes = 640;
+	mapMode.nYRes = 480;
+
+	
+	//create generator
+	xn::DepthGenerator depthGenerator;
+	eResult = depthGenerator.Create(m_Context);
+	checkerror(eResult, "create depthgenerator");
+	depthGenerator.SetMapOutputMode(mapMode);
+	int maxdepth = depthGenerator.GetDeviceMaxDepth();
+	xn::MockDepthGenerator mockDepth;
+	mockDepth.CreateBasedOn(depthGenerator,"depth-mock");
+
+	m_Context.StartGeneratingAll();
+	DepthMetaData depthData;
+
+	Mat depthimg(mapMode.nYRes, mapMode.nXRes, CV_16UC1);
+	Mat depthshow;
+
+	while (depthGenerator.WaitAndUpdateData() != XN_STATUS_EOF)
+	{
+		depthGenerator.GetMetaData(depthData);
+		depthData.MakeDataWritable();
+		memcpy(depthimg.data, (void*)(depthData.Data()), depthData.DataSize());
+		depthimg.convertTo(depthshow, CV_8U, 255 / 4096.0, 0);
+		imshow("depth", depthshow);
+		transformDepthMD(depthData);
+		mockDepth.SetData(depthData);
+		memcpy(depthimg.data, (void*)(depthData.Data()), depthData.DataSize());
+		depthimg.convertTo(depthshow, CV_8U, 255 / 4096.0, 0);
+		imshow("depthmodify", depthshow);
+		cout << depthData.FrameID() << endl;
+		if (cv::waitKey(1) == 'q')
+		{
+			break;
+		}
+	}
+	mockDepth.Release();
+	depthGenerator.Release();
+	m_Context.StopGeneratingAll();
+	m_Context.Release();
+}
+
 void displaykinect()
 {
 	KinectMotors motors;
@@ -316,7 +362,8 @@ void XN_CALLBACK_TYPE PoseDetected(xn::PoseDetectionCapability& poseDetection,
 
 int main()
 {
-	displaykinect();
+	//displaykinect();
+	mockrealtime();
 	//modifyrecordfile("../project/test.oni","modify.oni");
 	//playBack("../project/modify.oni");
 	return 0;

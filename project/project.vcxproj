@@ -118,10 +118,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="depthfilter.cpp" />
+    <ClCompile Include="depthfilterMeta.cpp" />
     <ClCompile Include="kinect-motors.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="depthfilterMeta.h" />
     <ClInclude Include="kinect-motors.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
