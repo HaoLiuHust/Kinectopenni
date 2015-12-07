@@ -158,6 +158,34 @@ void fiterDepthAverageMeta(Mat& src, Mat& dst)
 		}
 	}
 
+	//averageQueueMeta.pop_back();
+	//averageQueueMeta.push_back(dst);
 	delete[] sumDepth;
 	delete[] averDepth;
+}
+
+void filterKalman(Mat& src, Mat& dst,Kalmanpar& params)
+{
+	int width = src.cols;
+	int height = src.rows;
+	int widthstep = src.step[0] / src.elemSize();
+
+	ushort *srcdata = src.ptr<ushort>(0);
+	ushort *dstdata = dst.ptr<ushort>(0);
+
+	for (int rowindex = 0; rowindex < height;++rowindex)
+	{
+		for (int colindex = 0; colindex < width;++colindex)
+		{
+			int depthindex = colindex + rowindex*widthstep;
+			ushort preddepth = params.xhat[depthindex];
+			double Pminus = params.P[depthindex] + params.Q;
+			double K = Pminus / (Pminus + params.R);
+			ushort finaldepth =static_cast<ushort>(preddepth + K*(srcdata[depthindex] - preddepth));
+			params.P[depthindex] = (1 - K)*Pminus;
+
+			params.xhat[depthindex] = finaldepth;
+			dstdata[depthindex] = finaldepth;
+		}
+	}
 }

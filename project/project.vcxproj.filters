@@ -27,12 +27,18 @@
     <ClCompile Include="depthfilterMeta.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Skeleton.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kinect-motors.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="depthfilterMeta.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Skeleton.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
